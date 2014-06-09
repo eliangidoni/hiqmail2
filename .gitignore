@@ -1,0 +1,4 @@
+*.log
+*.beam
+*.dump
+*.boot

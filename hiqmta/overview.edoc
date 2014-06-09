@@ -1,0 +1,8 @@
+@copyright 2012-2013 G. Elian Gidoni
+@title Hiqmail MTA (hiqmta)
+@doc 
+This application implements the Hiqmail MTA application.
+
+Use mnesia+ordered-set+disc_copy for mails waiting to be sent.
+
+@end

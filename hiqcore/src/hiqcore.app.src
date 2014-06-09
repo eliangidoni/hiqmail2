@@ -1,0 +1,19 @@
+{application, hiqcore,
+ [
+  {description, "Hiqmail Core application"},
+  {vsn, "1"},
+  {registered, [hiqcore_node_srv, hiqcore_sessions_sup,
+                hiqcore_evaluator_sup, hiqcore_session_cache_srv]},
+  {modules, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  sasl,
+                  inets,
+                  bson,
+                  mongodb,
+                  hiqlib
+                 ]},
+  {mod, {hiqcore_app, []}},
+  {env, []}
+ ]}.

@@ -1,0 +1,41 @@
+@copyright 2012-2013 G. Elian Gidoni
+@title Hiqmail Core (hiqcore)
+@doc 
+This application implements the Hiqmail Store, Filter and Sender Apps.
+
+==Mail request API==
+
+This API is implemented by HiqStore nodes. Communication is done through TCP sockets.
+
+===Request message format===
+```
+ Request = <ReqLen> <ParametersLen> <MailTplLen> <Parameters> <MailTpl>
+
+ ReqLen, ParametersLen, MailTplLen:
+  - 4 bytes each.
+ Parameters:
+  - JSON object list.
+  - Attribute names start with '#'.
+  - Each object _must_ contain a mail ID attribute "#id".
+    A mail ID is a number pair 'R-M', where R is the rule set ID and M is the mail text ID.
+ MailTpl:
+  - Mail template in plain text format.
+'''
+===Reply message format===
+```
+ Reply = <ReplyLen> <StatusList>
+ StatusList = <Status> [<Status>, ...]
+ Status = <Code> "{" <String> "}"
+
+ ReplyLen:
+  - 4 bytes.
+ Code:
+  - "O" when request succeeded, "E" when there was an error.
+ String:
+  - The mail ID when <Code> = "O", or the error message when <Code> = "E".
+
+The status list on each Reply has as many statuses as mail IDs on the Request.
+When there is some error that prohibits any mail to be processed,
+only one error status is sent.
+'''
+@end

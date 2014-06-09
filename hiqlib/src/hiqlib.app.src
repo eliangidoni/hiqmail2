@@ -1,0 +1,14 @@
+{application, hiqlib,
+ [
+  {description, "Hiqmail Library application"},
+  {vsn, "1"},
+  {registered, [hiqlib_log_srv]},
+  {modules, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  sasl,
+                  json
+                 ]},
+  {env, []}
+ ]}.

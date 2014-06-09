@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+<link href='http://fonts.googleapis.com/css?family=Cantarell:regular,italic,bold&subset=latin' rel='stylesheet' type='text/css'>
+  
+    <!--
+     |
+     \|/|/
+   \|\\|//|/
+    \|\|/|/
+     \\|//
+      \|/
+      \|/
+       |
+ _\|/__|_\|/____\|/_inaka.net
+	-->
+  <meta charset="utf-8">
+  <title>Inaka: Scaling Erlang</title>
+  <meta name="author" content="Inaka">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+
+  <link rel="canonical" href="http://inaka.net/blog/2011/10/07/scale-test-plan-simple-erlang-application/"/>
+  <link href="/favicon.ico" rel="shortcut icon" />
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="http://s3.amazonaws.com/ender-js/jeesh.min.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <script src="/javascripts/default.js" type="text/javascript"></script>
+  <link href='http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic' rel='stylesheet' type='text/css'>
+  <link href='http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic' rel='stylesheet' type='text/css'>
+  
+  <link href="/atom.xml" rel="alternate" title="Inaka" type="application/atom+xml"/>
+  
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+  
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+</head>
+
+ <!-- page container -->
+<div id='container'>
+    <div id='header-outer'>
+    </div>
+    <!-- page body -->
+    <div id="body-outer">
+        <div id="body" class="clearfix">
+          <div id="content">
+          <div id="post-header">
+            <a href="/blog/archives">All Posts >></a>
+            <img style="position:absolute;left:1100px;" src="/images/inaka_leaf_logo.png"/>
+            <h2 id="post-title">Scaling Erlang</h2>
+            <br/>
+            <time datetime="2011-10-07 10:00:00 -0300" pubdate><span class='month'>Oct</span> <span class='day'>07</span> <span class='year'>2011</span></time>
+            : Fernando Benavides
+            </div>
+            <div class="span-16">
+              <div id="post">
+              <p>One of the most common reasons why people choose Erlang is to build <em>highly scalable systems</em>. And Erlang does a great job helping developers reach those goals. But creating a scalable system is not a matter of just writing it in Erlang. Here at Inaka we usually have complex systems written in Erlang or Ruby and for each one of them, at some point, we need to be sure that they can handle many concurrent users. We spent lots of time testing and improving systems and we've learned a lot from that process. I would like to share part of this knowledge in this post. To help in understanding the process and the reasoning behind our techniques we'll create a sample project and we'll walk through our usual scale test plan with it.</p>
+
+<h2>The Sample Project (<em>Match Stream</em>)</h2>
+
+<p>In order to provide real examples and work on something concrete, we've created a sample project on <a href="http://github.com/inaka/match_stream">github</a>. MatchStream is a very basic back-end for an application like ESPN's <a href="http://www.espnstar.com/football/matchcast/detail/">MatchCast</a>. The user chooses a match and MatchStream keeps him up to date on its score and teams and provides a report of what's happening in the field.
+On the other side, somebody that's actually watching the game (we call him "the watcher") is supposed to be registering events in the system. Since that is not our main concern, we've created a fake_watcher module that just reads events from a file.
+To make our life easier, MatchStream clients work over plain TCP connections with a very simple protocol. Here is a sample client session (first line is sent by the client, the rest of it is the server response):</p>
+
+<pre><code>VERSION:1:CONNECT:elbrujohalcon:MATCH:elp-tig-2011-09-10
+2011-09-13 13:48:48: status:
+    home: &lt;&lt;"elp"&gt;&gt;
+    home_players:
+         Albil (25) 
+         Mercado (14) 
+         Desabato (2) 
+         Cellay (3) 
+         Dominguez (27) 
+         Veron (11) 
+         Fernandez (10) 
+         Sanchez (5) 
+         Gonzalez (19) 
+         Fernandez (18) 
+         Boselli (9) 
+    home_score: 0
+    visit: &lt;&lt;"tig"&gt;&gt;
+    visit_players:
+         Garcia (12) 
+         Casteglione (13) 
+         Echeverria (21) 
+         Blengio (3) 
+         Diaz (15) 
+         Castano (5) 
+         Martinez (6) 
+         Leone (11) 
+         Morales (10) 
+         Luna (7) 
+         Maggiolo (9) 
+    visit_score: 0
+    period: first
+
+2011-09-13 13:48:51: goal:
+    player: Luna (7) 
+    team: &lt;&lt;"tig"&gt;&gt;
+
+2011-09-13 13:49:03: penalty:
+    player: Martinez (6) 
+    team: &lt;&lt;"tig"&gt;&gt;
+
+2011-09-13 13:49:04: card:
+    player: Albil (25) 
+    card: red
+    team: &lt;&lt;"elp"&gt;&gt;
+
+2011-09-13 13:49:05: substitution:
+    player_out: Fernandez (18) 
+    team: &lt;&lt;"elp"&gt;&gt;
+    player_in: Silva (21) 
+
+2011-09-13 13:49:07: card:
+    player: Desabato (2) 
+    card: yellow
+    team: &lt;&lt;"elp"&gt;&gt;
+
+2011-09-13 13:49:08: goal:
+    player: Morales (10) 
+    team: &lt;&lt;"tig"&gt;&gt;
+
+...
+</code></pre>
+
+<p>Finally, the system provides a RESTful API (built on mochiweb) that lets users get information about the available matches.</p>
+
+<p>The initial project architecture was quite simple. <a href="http://inaka.github.com/match_stream/">The documentation is on github</a> and <a href="http://inaka.github.com/match_stream/architecture/running.png">here is the graph that appmon shows when it's running</a>.
+<img src="http://inaka.github.com/match_stream/architecture/running.png" style="width:800px" /></p>
+
+<p>As you can see, <em>Match Stream</em> was designed as a regular OTP application, with one main supervisor (<code>match_stream_sup</code>) that managed three other supervisors (<code>match_stream_match_sup</code>, <code>match_stream_user_sup</code> and <code>match_stream_client_sup</code>) and three workers (<code>match_stream_web</code>, <code>match_stream_db</code> and <code>match_stream_client_listener</code>).</p>
+
+<p>On the server side, new matches were stored using <code>match_stream_db</code>. We implemented it using <a href="http://redis.io/">Redis</a> through our own fork of <a href="https://bitbucket.org/japerk/erldis/wiki/Home">erldis</a>. We decided to use it as a database just because it simplifies our samples, but since all persistency is abstracted behind <code>match_stream_db</code> it is easy to switch to a different technology.</p>
+
+<p>When a match starts (and it may be started with any event), a new <code>match_stream_match</code> process is spawned under the supervision of <code>match_stream_match_sup</code> and it then starts a linked <em>gen_event</em> manager to dispatch events.</p>
+
+<p>On the other side, the application listens for client TCP connections using <code>match_stream_client_listener</code> (a Non-blocking TCP listener implemented as seen in <a href="http://www.trapexit.org/index.php/Building_a_Non-blocking_TCP_server_using_OTP_principles">this article</a>). Each connection is handled by a <code>match_stream_client</code> process. When a client sends the connection message to the server, the <code>match_stream_client</code> process notifies the corresponding <code>match_stream_user</code> process, if it's not already started, <code>match_stream_user_sup</code> starts it right away. The user process then subscribes (and links) itself to the match event manager. It will then send every event it gets from the match to the associated client process, which will in turn format it and send it over the TCP connection.</p>
+
+<p>Finally, there is a mochiweb server called <code>match_stream_web</code> that processes API requests from web users. The users should use this API to know which matches are available before trying to connect to them.</p>
+
+<p>Throughout this post we'll describe a series of improvements. Checking its commits on github, and starting from <a href="https://github.com/inaka/match_stream/commit/3f8b2177a146178b8331b47bff3a8086167a055d">this commit</a> you can follow the steps described in this post.</p>
+
+<p>Now that we introduced the system, let's start scaling it!</p>
+
+<p>The following sections will represent the 5 stages that make our scalability procedure. Each of them starts by defining our goals for it and the tools we'll need. Then we describe the steps involved in reaching the goals. If possible, with each step you'll find the related commit on MatchStream so you can see an example of how to implement what the step describes. Finally, we show you our results (i.e. how much our test system improved with the proposed changes). It's important to notice that the procedure is rather generic, even when the examples are focused on our sample project.</p>
+
+<h2>1. Is it really working?</h2>
+
+<h3>Goals</h3>
+
+<p>This is the first stage, where we set the grounds for the next ones. At this point we want to be sure the system is working correctly and we want to be able to describe standard user interaction paths. At this stage we should build the <em>user simulator</em>, a fundamental tool for all the remaining stages.</p>
+
+<h3>Tools</h3>
+
+<ul>
+<li>An HTTP logging system.
+
+<ul>
+<li>We usually install all our web apps behind <a href="http://nginx.net/">nginx</a>, if only to be able to collect and analyze its logs, but also because nginx's connection handling semantics, basic load balancing, and support for compression and SSL connections is so easy to configure.</li>
+</ul>
+</li>
+<li>Logging tools.
+
+<ul>
+<li>We will need to direct the server own logs as well as those generated by SASL to file(s) in order to check them later. We generally use <a href="http://inaka.github.com/elog/">elog</a> for this since we know it well, and since we can compile it out of modules we don't need to log for speed, but you may want to try using <a href="http://blog.basho.com/2011/07/20/Introducing-Lager-A-New-Logging-Framework-for-ErlangOTP/">Lager</a> or any other such application.</li>
+</ul>
+</li>
+</ul>
+
+
+<h3>Steps</h3>
+
+<ul>
+<li>Manual test: Trying the system by ourselves.
+
+<ul>
+<li>We need to be sure the system is working so we just use it.</li>
+<li>In our case (for MatchStream), we start a match using the <code>fake_watcher</code> module, run <code>$ curl http://localhost:8888/matches</code> in another console to verify that the match is registered, open a telnet session, type in the necessary parameters and watch the match flow before our eyes until it ends.</li>
+</ul>
+</li>
+<li>Improving the logging mechanisms.
+
+<ul>
+<li>We add the corresponding rebar dependencies and turn all system logging into our chosen logger. (<a href="https://github.com/inaka/match_stream/commit/3af843a82aa72eaa1f06b2350ecf0cdff8016c4a">related commit</a>)</li>
+<li>We run the test manually once more but now we check the generated log files instead of the server console. It should give us enough information to see that everything is working as it should.</li>
+</ul>
+</li>
+<li>Creating the simulator.
+
+<ul>
+<li>This must be a process as simple as it may be that reproduces the standard user behaviour.</li>
+<li>It must not be smart: it doesn’t matter if it understands the information it receives, it just needs to connect and get the events.</li>
+<li>The main requirement for this piece of code is that it will emit an alert if it can’t connect, or if gets disconnected too early and also show a success message if it manages to do what a regular user expect to do when he uses the system.</li>
+<li>Another important requirement is that it must be able to run without any internal knowledge of the server. In other words, this component is allowed to know about the server only those things that any possible client knows.</li>
+<li>For our sample system, we call it <code>fake_client</code> and we place it on the <code>test</code> folder. (<a href="https://github.com/inaka/match_stream/commit/a654501fd45ac4403eeb21c21aaaf9cf451d76e7">related commit</a>)</li>
+<li>As you can see, at this point its main function just connects with the server and loops until the connection is closed. It's as simple as it may be, it detects incomplete matches and events as well as connection drops, but nothing else. We'll eventually add functionality to it if we need it.</li>
+<li>After that, we use the simulator to run a single test, on its own, just to verify that it's working as expected.</li>
+<li>We ignore web requests in this stage, we're going to test them later.</li>
+</ul>
+</li>
+<li>Testing with the simulator.
+
+<ul>
+<li>We run the simulator along with us.</li>
+<li>We start a match on the server, then we start a simulator and at the same time we open a telnet session and watch the match.</li>
+<li>As a last test, we run a bunch of simulators together. We're not trying to test the server ability to scale, but the simulator ability to run multiple instances of itself, so we run just 4 or 5 of them.</li>
+</ul>
+</li>
+<li>Checking the user interaction paths.
+
+<ul>
+<li>We want to be sure the simulator behaves as a regular user.</li>
+<li>For MatchStream, that's not really difficult because user interactions with the system are simple: the user connects, sends a message and receive responses until the server hungs up and we know that's exactly what we coded in <code>fake_client</code>. But in more complex applications, you may need to check other stuff (e.g. the user may usually disconnect and connect again, system may have different kinds of clients, etc.). In such cases, it's useful to detect and compile a list of common user interaction paths and then make sure you test all of them in the following stages.</li>
+<li>It's also important to determine the massive user interaction paths: All users tend to connect at same moment? They usually disconnect together? How will the connections be spread over time? etc.</li>
+<li>To gather the info we want, we make sure nobody else is using the system, then we clean all the logs and reproduce standard user interactions (in our case: call the API, connect, watch a match, wait for the end of it, disconnect) by ourselves.</li>
+<li>We move server log files (describing the user interaction during the game) to a different folder. Then we let simulators watch a game. After that both log files (i.e. human interaction logs and simulator interaction logs) are compared. They must be very similar, except for the API part. If they’re not, simulator is modified to reduce the differences and testing goes back to previous steps until we're satisfied.</li>
+</ul>
+</li>
+</ul>
+
+
+<h3>Our Results</h3>
+
+<p>In each of the previous steps, we checked the server to see if it was working before, during and after the match. When we found errors (and you can see from <a href="https://github.com/inaka/match_stream/commit/9c0a451966ed6d9b609bafdeb99d4d55667a049d">the commits</a> we've found some of them), we fixed them and we tested again. After a while, we were pretty sure everything was working as expected.</p>
+
+<h2>2. Finding the Boundaries</h2>
+
+<h3>Goals</h3>
+
+<p>Now that we have our system working and a good simulator to help us with the tests, we want to know how good it is. At the end of this stage, we want to be able to tell (in numbers) how many concurrent users can be handled by the system.</p>
+
+<h3>Tools</h3>
+
+<ul>
+<li>Two computers: one for server, the other to run simulators.
+
+<ul>
+<li>This way we make communications between server and clients go through the network and not just inside the machine. Also with this schema if we hang our server machine, we can still check the results on the clients.</li>
+</ul>
+</li>
+<li>A multi-ssh tool.
+
+<ul>
+<li>It proves useful, because we'll need to run many things in both computers at once.</li>
+<li>You can use <a href="http://code.google.com/p/csshx/">csshX</a> on OSX or <a href="http://sourceforge.net/projects/mussh/">mussh</a> on Linux.</li>
+</ul>
+</li>
+<li>An http load tester.
+
+<ul>
+<li>Like <a href="http://httpd.apache.org/docs/2.0/programs/ab.html">ApacheBench</a> or <a href="http://tsung.erlang-projects.org/">Tsung</a>.</li>
+<li>The right choice will depend on how complicated your http user interaction paths are.</li>
+<li>For MatchStream, ApacheBench seems to be the best choice.</li>
+</ul>
+</li>
+</ul>
+
+
+<h3>Steps</h3>
+
+<ul>
+<li>Base Numbers.
+
+<ul>
+<li>The idea is to start with a small number of connections and then keep increasing until we reach the maximum available. We usually start with something really small (like 16 users) just to be sure. Let's call that number <em>N</em>.</li>
+<li>Another important number that we will call <em>C</em> is the number of concurrent attempts (they may be TCP connection attempts or HTTP requests). We'll try to increase it along with <em>N</em> to represent the user interaction paths we gather in stage 1 in the most accurately possible way.</li>
+</ul>
+</li>
+<li>HTTP Test.
+
+<ul>
+<li>We create an http test based on the user interaction paths.</li>
+<li>In our case it's just a shell script with 2 ApacheBench calls. (<a href="https://github.com/inaka/match_stream/commit/de64a100bf58d3d2bee77e6c9e49fffcb373bfdd">related commit</a>)</li>
+</ul>
+</li>
+<li>Running the tests.
+
+<ul>
+<li>We run <em>N</em> http simultaneous tests, then <em>N</em> simulators and then both together.</li>
+<li>At the same time, one person is using the system himself to have a visual feeling on how it behaves.</li>
+<li>We do it this way to be able to detect if the problem is the web, the TCP connections or the fact that they both run together. If your project has other different types of connections you should test each one of them alone at first and then everything combined. Don't forget to have somebody actually using the system at the same time: that's how you know it is in fact working.</li>
+<li>The bigger the <em>N</em>, the more client machines we need. A good practice is to create an image for a machine that’s working and then replicate it as many times as needed. Amazon servers, combined with csshX or mussh are great for that.</li>
+<li>If everything worked and we were able to use the system correctly, we go back to the previous step but this time with a bigger <em>N</em>, say 2<em>N</em>, and a bigger <em>C</em> if possible.</li>
+<li>On the other hand, if something failed, we mark the current <em>N</em> as our current limit. We will use that value later, and we will come back here as many times as we need until we get <em>N</em> to be higher than the number of users we expect our system to handle.</li>
+</ul>
+</li>
+</ul>
+
+
+<h3>Our Results</h3>
+
+<p>We needed to make <a href="https://github.com/inaka/match_stream/commit/49526204bfac6775b6c48c7868cb88751c59d447">some</a> <a href="https://github.com/inaka/match_stream/commit/49526204bfac6775b6c48c7868cb88751c59d447">changes</a> to our tests, With those, we discovered that our MatchStrem server could handle up to 1000 concurrent TCP connections but no more than 4 at time. Not a really good result. We also discovered that our web API can handle 2048 (128 at a time) with no errors. With higher values, the history api call fails a lot. That's something we definitively wanted to improve, too.</p>
+
+<h2>3. Blackbox Tests</h2>
+
+<h3>Goals</h3>
+
+<p>In our experience, many scaling problems are not related to the system itself as they're related to the environment in which it's running. In order to get the best from your system, you need to tune in the machine, the operating system and the virtual machine in which it's running. When this stage is through we expect to have a set of servers and nodes properly configured to run at their optimal performance. It’s not a goal in this stage to make any code changes - only to tune the deployed system.</p>
+
+<h3>Tools</h3>
+
+<ul>
+<li>A privileged account (e.g. a sudoer on Linux systems) on the server.</li>
+<li>Tools for checking server status.
+
+<ul>
+<li>Tools like <a href="http://htop.sourceforge.net/">htop</a>, watch, netstat, etc. will be very helpful.</li>
+</ul>
+</li>
+</ul>
+
+
+<h3>Steps</h3>
+
+<ul>
+<li><p>Kernel variables.</p>
+
+<ul>
+<li>We check server kernel variables to see if their values fit the system needs. A non exhaustive list of commands for *NIX servers follows (we use all of these in our production environments):
+
+<pre><code>      # Increase the ipv4 port range:
+      sysctl -w net.ipv4.ip_local_port_range="1024 65535"
+      # General gigabit tuning:
+      sysctl -w net.core.rmem_max=16777216
+      sysctl -w net.core.wmem_max=16777216
+      sysctl -w net.ipv4.tcp_rmem="4096 87380 16777216"
+      sysctl -w net.ipv4.tcp_wmem="4096 65536 16777216"
+      sysctl -w net.ipv4.tcp_syncookies=1
+      # This gives the kernel more memory for tcp which you need with many (100k+) open socket connections
+      sysctl -w net.ipv4.tcp_mem="50576   64768   98152"
+      sysctl -w net.core.netdev_max_backlog=2500
+      # This set the tcp max connections
+      sysctl -w net.netfilter.nf_conntrack_max=1233000
+</code></pre></li>
+</ul>
+</li>
+<li><p>Open files limit.</p>
+
+<ul>
+<li>For tcp connections and also for http connections, servers usually require higher than usual numbers of simultaneously open files. In other words, the value returned by the next command should be high enough:
+
+<pre><code>      $ ulimit -n
+</code></pre></li>
+<li>If it’s not (the default value is usually 1024), it must be set up to a bigger number, for instance running the following command:
+
+<pre><code>      $ ulimit -n 999999
+</code></pre></li>
+</ul>
+</li>
+<li><p>Erlang VM parameters.</p>
+
+<ul>
+<li>We verify the command line parameters we pass <a href="http://www.erlang.org/doc/man/erl.html">erl</a> when we start our system nodes.</li>
+<li>Erl presents a long list of command line options, we usually need to use just a few of them (+P to have a higher number of processes, +K to enable kernell poll, -smp to enable SMP support)</li>
+<li>In our project, we've the parameters in <code>Makefile</code>, so we only need to modify that file.</li>
+<li>We tweak a parameter at a time, runing Stage 2 again with bigger values for <em>N</em> until we're satisfied.</li>
+</ul>
+</li>
+</ul>
+
+
+<h3>Our Results</h3>
+
+<p>With all the tweaks, we got our <em>N</em> up to 4096 but we couldn't change the fact that we couldn't connect more than 4 clients at a time. We deal with that in the next stages.</p>
+
+<h2>4. Erlang Tuning</h2>
+
+<h3>Goals</h3>
+
+<p>Now that we covered all aspects but the system code itself, it's time to focus on it. This stage tends to be unique in every project. There may be a lot of different reasons why a process or a function may become a bottleneck and a lot of ways to solve each problem. This stage is usually the longest one, so prepair yourself to spend days (or even weeks) with it. We don't put our assumptions about which will be a problem here until we start this phase. Then we iteratively work on this section, expanding it and listing our findings. However, over time we have compiled a list of classic problem classes that we usually encounter. We show you the list after the steps. The goal of this stage is to be as sure as we can that we have nothing else to tweak in the system in order to improve its performance.</p>
+
+<h3>Tools</h3>
+
+<ul>
+<li>An Erlang top-like tool.
+
+<ul>
+<li>Like <a href="http://erldocs.com/R14A/observer/etop.html">etop</a> or <a href="https://mazenharake.wordpress.com/category/entop/">entop</a>.</li>
+</ul>
+</li>
+<li>Ad-Hoc Erlang functions or processes.
+
+<ul>
+<li>We'll need helpers to analyze the load on different processes, nodes, etc...</li>
+<li>These may range from properly inserted log lines with time measures to processes that keep an eye on some Erlang measures and traces, etc...</li>
+</ul>
+</li>
+</ul>
+
+
+<h3>Steps</h3>
+
+<ul>
+<li><p>Checking Message Queue Lengths.</p>
+
+<ul>
+<li>We start an instance of the top-like tool of choice (we’ll call it <em>top</em> to abbreviate).</li>
+<li>We sort lines by message queue length in order to detect processes with long lists of unprocessed messages. This processes may or may not be stalling the system, but they're a great starting point for further checks.</li>
+<li>We run the steps from stage 2 with the last <em>N</em> that worked fine checking the <em>top</em> console to see if there’s any process(es) with increasing message queues.</li>
+<li>We run the steps from stage 2 with the first <em>N</em> that didn't work checking the <em>top</em> console, too.</li>
+</ul>
+</li>
+<li><p>Checking Memory.</p>
+
+<ul>
+<li>We repeat the same procedure as the previous step but this time keeping an eye on Memory instead of Message Queue Length.</li>
+</ul>
+</li>
+<li><p>Fixes.</p>
+
+<ul>
+<li>In the previous steps we should have found a group of processes to analyze.</li>
+<li>First we need to find the associated modules for them.</li>
+<li>If the process is registered with a name, finding the module is easy. If it's not we usually get enough information to describe it running <code>erlang:process_info(erlang:list_to_pid("PID")).</code> on the server console.</li>
+<li>Once we've found the module, it's also useful to run <code>erlang:process_info(erlang:list_to_pid("PID"), [messages]).</code> to see which messages are increasing the process message queue or just <code>erlang:process_info(erlang:list_to_pid("PID")).</code> to see how the process is using the memory.</li>
+<li>Then we try to "fix the problem". We can't describe exactly how to do it, but we have a list of tips and tricks that worked in the past...</li>
+</ul>
+</li>
+</ul>
+
+
+<h3>Tips &amp; Tricks</h3>
+
+<ul>
+<li>Mnesia startup delays.
+
+<ul>
+<li>When Mnesia databases grow, it takes them longer and longer to boot up.</li>
+<li>If this happens, it's time to consider moving from Mnesia to other db engines.</li>
+</ul>
+</li>
+<li>Timers.
+
+<ul>
+<li>Timers created using the timer module are usually worse for performance than those created with functions like <code>erlang:send_after</code>.</li>
+<li>When we detect this kind of stuff, we change those we find appropriate.</li>
+</ul>
+</li>
+<li>TCP connection backlog.
+
+<ul>
+<li>The default backlog value for listening TCP connections (both on listeners and websites) is 5.</li>
+<li>This may be too low if you want to handle lots of concurrent connections.</li>
+<li>We increase it, usually over 128K.</li>
+<li>For MatchStream, this effectively removed our <em>C</em> limitations. (<a href="https://github.com/inaka/match_stream/commit/e63a21ea9e57a5cc3cf6c638dbf33de2a956d29b">related commit</a>)</li>
+</ul>
+</li>
+<li>gen_event supervised handlers.
+
+<ul>
+<li>We've already written <a href="http://erlanginside.com/gen-event-undocumented-behavior-publish-subscribe-211">a blog post</a> about this.</li>
+<li><code>gen_event</code> managers are linked to all their gen_event supervised handlers, thus multiplying the delivery of termination messages exponentially.</li>
+<li>We replace calls to <code>gen_event:add_sup_handler/3</code> with proper erlang process monitoring tools. (<a href="https://github.com/inaka/match_stream/commit/470da40dcc3d595bfbc021de8555c92a460fe36e">related commit</a>)</li>
+</ul>
+</li>
+<li>Logging too much.
+
+<ul>
+<li>A crowded logging system is usually a bottleneck.</li>
+<li>We always have different logging configurations for production and development and spend a considerable amount of time deciding which events must to be logged and how. (<a href="https://github.com/inaka/match_stream/commit/de435e55656414d83205dc4a5c5fc7d98133c31e">related commit</a>)</li>
+</ul>
+</li>
+<li>gen_servers timing out on calls.
+
+<ul>
+<li>Among those process with long queues there are usually gen_servers stuck with messages that are mostly calls of same kind (i.e. they’re handled by the same handle_call clause).</li>
+<li>It’s convenient to check them and see if that clause implementation may be divided in two parts: one that must be executed on the main gen_server process because it affects its state and other that does not affect the server state and therefore may be executed in an ad hoc process spawn_link’ed for it.</li>
+<li>That child process must include a call to <code>gen_server:reply/2</code>.</li>
+<li><code>handle_call/3</code> in <code>match_stream_db</code> is the perfect example for that. (<a href="https://github.com/inaka/match_stream/commit/74110099c0e8a4371de01d3f49224038f8cbf67a">related commit</a>)</li>
+</ul>
+</li>
+<li>Unregistered processes.
+
+<ul>
+<li>Sometimes processes are not registered, but their pids are kept in dicts or ets tables monitored by other processes.</li>
+<li>Keeping track of those pids in this way can create too much work, and creates potential failure points in the system.</li>
+<li>We register those processes with a dynamic but consistently built process name to make them easier to find (i.e. with no need for a gen_server call) by the processes that need to. (<a href="https://github.com/inaka/match_stream/commit/a013ec9a8fd21dd5dd79a526776764b2a3bc1e24">related commit</a>)</li>
+</ul>
+</li>
+<li>Too few outbound TCP connections.
+
+<ul>
+<li>Outbound TCP connections (usually, connections to DBs) are generally limited (e.g. just one connection per application).</li>
+<li>If there's no real nead for that, having a proper controlling process in front of them, systems may benefit from using multiple connections to the same database.</li>
+<li>That's exactly our case in MatchStream when connecting with Redis. (<a href="https://github.com/inaka/match_stream/commit/e81dc1e1185d1f241c833812744e1d3e76c7ba2e">related commit</a>)</li>
+</ul>
+</li>
+<li>gen_servers consuming too much memory.
+
+<ul>
+<li>If we detect gen_servers with large memory footprints, we consider making them hibernate by returning <code>{reply, Reply, State, hibernate}</code> to calls and/or <code>{noreply, State, hibernate}</code> to casts or infos.</li>
+<li>This reduces process footprint and, unless the process is constantly in use, is bearly noticeable otherwise.</li>
+<li>In our sample project, we changed two gen_servers this way. (<a href="https://github.com/inaka/match_stream/commit/00b4c26994ebb097604606afd20533c4514df092">related commit</a>)</li>
+</ul>
+</li>
+<li>Overcrowded supervisors.
+
+<ul>
+<li>This is a critial design change that also sets the foundation for cross-node monitoring</li>
+<li>If the process with a long queue is a <code>simple_one_for_one</code> supervisor that’s required to start/stop many child processes at once, we consider the possibility to turn that supervisor into a supervisor tree.</li>
+<li>To do that, instead of the current child processes, the supervisor must have a (maybe long) list of supervisor children.</li>
+<li>Every one of those new supervisors behaves exactly as the original one is behaving now and the function that currently calls <code>supervisor:start_child/2</code> (if there’s not just one function that does that in the current supervisor module, then it should be) will use a randomly chosen supervisor child as its first parameter.</li>
+<li>To make things easier both for programmers and the running system, we choose a proper naming convention for these supervisors (i.e. they may register themselves as ‘module-name_###’ where ### is a number that ranges from 1 to the number of supervisors) and then just write the <code>supervisor:start_child/2</code> call as follows:
+
+<blockquote><pre><code>    supervisor:start_child(list_to_atom(“module-name_” ++ integer_to_list(random:uniform(#ofSupervisors))).
+</code></pre></blockquote></li>
+<li>In MatchStreamer, we've implemented this strategy on the <code>match_stream_user_sup</code> hierarchy. (<a href="https://github.com/inaka/match_stream/commit/e055048331b5b00a427401de4e7dd73040d9f7ff">related commit</a>)</li>
+</ul>
+</li>
+<li>gen_servers taking too long to initialize.
+
+<ul>
+<li>If we detect gen_servers that take too long to initialize (i.e. their <code>init/1</code> takes too long), we try to reply <code>{ok, State, 0}</code> there and then implement proper initialization on <code>handle_info(timeout, State).</code></li>
+<li>We implemented this trick in <code>match_stream_user</code>. (<a href="https://github.com/inaka/match_stream/commit/17f97442e7e3202015ebf994bef680a6c7979687">related commit</a>)</li>
+</ul>
+</li>
+<li>Long delivery queues.
+
+<ul>
+<li>One problem usually found on gen_events is that sometimes the publisher takes too long to deliver messages to all its subscribers.</li>
+<li>If that’s the case we consider the addition of <em>repeaters</em> that let subscribers be distributed.</li>
+<li>This works in the same way as the previous item works for supervisors.</li>
+<li>We didn't need this for MatchStream but we show you a <a href="https://gist.github.com/1230182">gen_event_repeater</a> here, just in case.</li>
+</ul>
+</li>
+<li>Too many connections on one inbound TCP port.
+
+<ul>
+<li>This may be seen on TCP listeners or web sites.</li>
+<li>When being able to listen to too many connections at once is an issue, we try to set things up so there are multiple open ports for each service and then we place a load balancing mechanism in front of it.</li>
+<li>For websites, we implement load balancing using a proper nginx (or we could use Varnish) configuration (defining a proper <a href="http://wiki.nginx.org/HttpUpstreamModule">upstream</a> using <em>ip_hash</em>) in front of the website.</li>
+<li>For TCP listeners, we implement a new API call that tells the client which TCP port to connect to. (<a href="https://github.com/inaka/match_stream/commit/8598c7c309373c2be41c42633595e271aae9d6c8">related commit</a>)</li>
+</ul>
+</li>
+</ul>
+
+
+<h3>Our Results</h3>
+
+<p>After all the tweaks, we got our <em>N</em> up to 64000 and, with the TCP backlog and the multi-port change we made our system able to connect over 8000 clients at a time. We have similar results on the web side with one server node.</p>
+
+<h2>5. Adding Nodes</h2>
+
+<h3>Goals</h3>
+
+<p>One of the greatest things when scaling Erlang projects is how easy it is to just <em>add a new node to the cluster to make it run better</em>. With a well developed system, it's fairly easy to do so. Our experience shows that the hardest one is the second node: once you've managed to have your server running in two nodes, to keep adding nodes on demand is straightforward. Those nodes may or may not need to be connected and they may or may not run in the same machine. At the end of this stage, we want to know how much the system improves in terms of performance with the addition of new nodes and we expect to have the system ready to let us do that whenever we need it.
+At this point, we should know the number of users that we are able to handle with one server instance. One important thing to keep in mind is that if we find any code improvements, we should go back to the previous stage and retest the system with just one node before testing with many of them.</p>
+
+<h3>Tools</h3>
+
+<p>We won't need any extra tools for this stage, but we'll need at least two computers to work as servers.</p>
+
+<h3>Steps</h3>
+
+<ul>
+<li>Prepairing the system to run on many nodes.
+
+<ul>
+<li>We make the code changes needed to be able to run more than one instance of the server using the same binaries.</li>
+<li>For instance, we move configuration values from hrl files to application environment variables.</li>
+<li>We change our startup mechanisms in order to ease this task. (<a href="https://github.com/inaka/match_stream/commit/15e25cb444bf65bf659b82e659d0b02878266144">related commit</a>)</li>
+<li>In order to add interconnected nodes, we determine which processes should be run just once (i.e. the system <em>must</em> have just one instance of them) and which ones may be started once in each node. How to make sure that happens involves per-system decisions, but usually <a href="http://erldocs.com/R14B03/kernel/pg2.html">pg2</a> and/or global process registration come in handy.</li>
+<li>For MatchStream, since it's a highly parallelizable system and users and matches are totally independent from each other, almost every process may run in every node.</li>
+<li>One exception is <code>match_stream_db</code>: even when it may have different running copies, we don't want it to duplicate data. Then we split its functionality in two: a <em>reader</em> that may run in every node and a <em>writer</em> that needs to be unique. (<a href="https://github.com/inaka/match_stream/commit/842b3280bba11ea42008c440cb5c6ad8d7f73223">related commit</a>)</li>
+<li>On the other hand, we want <code>match_stream_match</code> processes to run independently in each node, but we want exactly one of them in every node for each live match. So, we need to start and stop them together. We use <code>pg2</code> for that. (<a href="https://github.com/inaka/match_stream/commit/39e0f997517f016df7978e1bad09bfbb4bea3b97">related commit</a>)</li>
+</ul>
+</li>
+<li>Interconnected instances.
+
+<ul>
+<li>We start two interconnected server instances in the same machine and run the tests from previous stages against them just to see everything works.</li>
+<li>We start adding new nodes and runing the tests again until we hit a limit (i.e. adding another node doesn't improve performance at all).</li>
+</ul>
+</li>
+<li>Independent instances.
+
+<ul>
+<li>Sometimes it's better to just run independent instances of the system instead of interconnected nodes.</li>
+<li>In those cases, it's important to consider which external resources (e.g. databases) should be shared or not.</li>
+<li>In our case, that would be painful for the watcher since he'll need to update many nodes at once but if we come up with an interface (say, a simple website) that does that for him, we can effectively increase our system capacity by just booting up new independent servers.</li>
+<li>We start two independent server instances in the same machine and run the tests from previous stages against them just to see everything works.</li>
+<li>We start adding new instances (in the same server or in new ones) and runing the tests until we hit a limit (i.e. adding another node doesn't improve performance at all).</li>
+</ul>
+</li>
+<li>The optimal configuration.
+
+<ul>
+<li>At this point, we should be able to state the <em>optimal configuration</em> for the system: how many servers we need to start, with how many interconnected or independent nodes in each of them, to handle the amount of users we want and how much can we later improve performance by adding another interconnected or independent node to the cluster.</li>
+</ul>
+</li>
+</ul>
+
+
+<h3>Our Results</h3>
+
+<p>For MatchStream we only tried with interconnected nodes and we found that, with this configuration, every new node adds capacity for 25K extra users without problems until the computer that holds them run out of memory. They may be able to handle greater ammounts of users, but 25K is a good approximation at a <em>comfortable</em> state. We started 3 nodes on our test server and we were able to effectively handle 75K concurrent users, which was enough for us.</p>
+
+<h2>Summary</h2>
+
+<p>Along the lines of this (maybe too long) post we tried to describe something that actually happens a lot in our company, a process that we repeat (and usually improve) for each of our projects. Designing highly scalable systems is not an easy task, but it is one of the most interesting and challenging tasks we do. And it's a job that begets the greatest rewards when it succeeds. With this process we managed to make one of our systems that choked with just 1K users at a time able to handle 100K users on just one server. I hope this article helps you achieve even more significant results. Please contact me (@elbrujohalcon on Twitter) to share your experiences w/scaling Erlang. I'll update this post with interesting results. Additionally, if you want updates on future posts like this, follow <a href="http://twitter.com/inakalabs">@inakalabs</a> on Twitter. Finally, call or email us if you'd like us to help scale your system or build a scalable system from scratch.</p>
+
+              </div>
+            </div>
+            <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://inaka.net/blog/2011/10/07/scale-test-plan-simple-erlang-application/" data-via="" data-counturl="http://inaka.net/blog/2011/10/07/scale-test-plan-simple-erlang-application/" >Tweet</a>
+  
+  
+  <g:plusone size="medium"></g:plusone>
+  
+</div>
+
+          </div>
+                <div id="sidebar">
+
+                   
+                </div>
+            </div>
+        </div>
+ 
+<script type="text/javascript">
+var clicky_site_ids = clicky_site_ids || [];
+clicky_site_ids.push(66580795);
+(function() {
+  var s = document.createElement('script');
+  s.type = 'text/javascript';
+  s.async = true;
+  s.src = '//static.getclicky.com/js';
+  ( document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0] ).appendChild( s );
+})();
+</script>
+<noscript><p><img alt="Clicky" width="1" height="1" src="//in.getclicky.com/66580795ns.gif" /></p></noscript>
+
+ 
+
+</body>
+</html>
+

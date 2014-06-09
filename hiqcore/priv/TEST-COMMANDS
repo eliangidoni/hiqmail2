@@ -1,0 +1,44 @@
+hiqlib_proto:join_node({hiqserver_node,server@localhost}, core, {hiqcore_node,core@localhost}, core@localhost).
+
+curl -D nn -X POST -H "Content-Type: application/json" -d '{"params":[{"#id": "1-2","#num":100,"#type":10,"foo":"bar"}], "template":"open {{foo}} close"}' http://127.0.0.1:8080/api/rule/add
+curl -D nn -X POST -H "Content-Type: application/json" -d '{"params":[{"#id": "1-2","#num":100,"#type":10,"foo":"bar"}], "template":"open {{foo}} close"}' http://127.0.0.1:8080/api/rule/update
+curl -D nn -X POST -H "Content-Type: application/json" -d '{"params":[{"#id": "1-2","#num":100,"#type":10,"foo":"bar"}], "template":"open {{foo}} close"}' http://127.0.0.1:8080/api/mail/send
+
+D1=hiqlib_rule:new_field_and(hiqlib_rule:new_field_number(<<"#type">>, "==", 10), hiqlib_rule:new_field_number(<<"#num">>, ">", 100)).
+D=hiqlib_rule:ruleset_fields(D1,hiqlib_rule:new_ruleset("1")).
+hiqlib_proto:do_query({hiqcore_node,core@localhost}, self(), hiqlib_rule:new_query("insert",D)).
+
+D2=hiqlib_rule:new_field_and(hiqlib_rule:new_field_number(<<"#type">>, "==", 10), hiqlib_rule:new_field_number(<<"#num">>, ">", 90)).
+D3=hiqlib_rule:ruleset_fields(D2,hiqlib_rule:new_ruleset("1")).
+hiqlib_proto:do_query({hiqcore_node,core@localhost}, self(), hiqlib_rule:new_query("update",D3)).
+
+D4=hiqlib_rule:new_field_and(hiqlib_rule:new_field_number(<<"#type">>, "==", 10), hiqlib_rule:new_field_string(<<"#id">>, "prefix", <<"0">>)).
+D5=hiqlib_rule:ruleset_fields(D4,hiqlib_rule:new_ruleset("1")).
+hiqlib_proto:do_query({hiqcore_node,core@localhost}, self(), hiqlib_rule:new_query("update",D5)).
+
+D6=hiqlib_rule:new_field_and(hiqlib_rule:new_field_number(<<"#type">>, "==", 10), hiqlib_rule:new_field_string(<<"#id">>, "suffix", <<"0">>)).
+D7=hiqlib_rule:ruleset_fields(D6,hiqlib_rule:new_ruleset("1")).
+hiqlib_proto:do_query({hiqcore_node,core@localhost}, self(), hiqlib_rule:new_query("update",D7)).
+
+D8=hiqlib_rule:new_field_and(hiqlib_rule:new_field_number(<<"#type">>, "==", 10), hiqlib_rule:new_field_string(<<"#id">>, "suffix", <<"-2">>)).
+D9=hiqlib_rule:ruleset_fields(D8,hiqlib_rule:new_ruleset("1")).
+hiqlib_proto:do_query({hiqcore_node,core@localhost}, self(), hiqlib_rule:new_query("update",D9)).
+
+D14=hiqlib_rule:new_field_and(hiqlib_rule:new_field_number(<<"#type">>, "==", 10), hiqlib_rule:new_field_string(<<"#id">>, "prefix", <<"1-">>)).
+D15=hiqlib_rule:ruleset_fields(D14,hiqlib_rule:new_ruleset("1")).
+hiqlib_proto:do_query({hiqcore_node,core@localhost}, self(), hiqlib_rule:new_query("update",D15)).
+
+D10=hiqlib_rule:new_field_and(hiqlib_rule:new_field_number(<<"#type">>, "==", 10), hiqlib_rule:new_field_string(<<"#id">>, "contains", <<"a">>)).
+D11=hiqlib_rule:ruleset_fields(D10,hiqlib_rule:new_ruleset("1")).
+hiqlib_proto:do_query({hiqcore_node,core@localhost}, self(), hiqlib_rule:new_query("update",D11)).
+
+D12=hiqlib_rule:new_field_and(hiqlib_rule:new_field_number(<<"#type">>, "==", 10), hiqlib_rule:new_field_string(<<"#id">>, "contains", <<"-">>)).
+D13=hiqlib_rule:ruleset_fields(D12,hiqlib_rule:new_ruleset("1")).
+hiqlib_proto:do_query({hiqcore_node,core@localhost}, self(), hiqlib_rule:new_query("update",D13)).
+
+
+Hook = fun(M) -> hiqlib_logger:log(debug, "Eval Hook: ", M) end,
+Hook2 = fun(M) -> hiqlib_logger:log(debug, "Notify Hook: ", M) end,
+D12=hiqlib_rule:new_field_and(hiqlib_rule:new_field_number(<<"#type">>, "==", 10), hiqlib_rule:new_field_string(<<"#id">>, "contains", <<"-">>)).
+D13=hiqlib_rule:ruleset_fields(D12,hiqlib_rule:new_ruleset("1", Hook, Hook2)).
+hiqlib_proto:do_query({hiqcore_node,core@localhost}, self(), hiqlib_rule:new_query("insert",D13)).

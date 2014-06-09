@@ -1,0 +1,94 @@
+#+TITLE: Hiqmail TODO
+#+OPTIONS: toc:2 num:nil creator:nil email:nil author:nil
+#+TODO: TODO WORKING | DONE CANCELED
+#+STYLE: <style type="text/css">
+#+STYLE: <!--/*--><![CDATA[/*><!--*/
+#+STYLE:  .title  { text-align: center; }
+#+STYLE:   body{text-align:center;}
+#+STYLE:   div#content{margin:0 auto; text-align:left; width:800px;}
+#+STYLE:   html{font-family: Georgia, times; font-size:10pt;}
+#+STYLE:   ul {list-style-type: none;}
+#+STYLE:   h3 {color:#555555;}
+#+STYLE:   ul li {padding-bottom: 1%;}
+#+STYLE:   a {color:blue;}
+#+STYLE:  /*]]>*/-->
+#+STYLE: </style>
+
+
+* Hiqmail Subsystems [0%]
+
+** TODO Bounce Store / HiqBStore [0/2]
+  - Should use Mnesia for data replication and loss prevention.
+   - [[http://igorrs.blogspot.com.ar/2010/05/mnesia-one-year-later-part-3.html][Considerations for mnesia performance]]
+  - [ ] Receives (through bounce interface) and classifies email bounces.
+  - [ ] Design plugin system to parse/classify bounces.
+
+** TODO Core / HiqCore [4/7]
+  - [X] Saves the generated email script output in intermediate buffer, i.e. memory, file, etc.
+  - [X] Loads a set of filter rules from rule queries.
+  - [X] Retrieves and evaluates emails for each configured filter.
+  - [X] Notifies the Sender which emails are ready to be sent.
+  - Mail Sending Resources:
+   - [[https://github.com/Vagabond/gen_smtp][SMTP library to connect to clients]]
+   - [[http://mailgun.org/][Mailgun: Programmable Email Servers and Mailbox API]]
+   - [[http://37signals.com/svn/posts/3096-behind-the-scenes-giving-away-the-secrets-of-email-delivery][Giving away the secrets of 99.3% email delivery - (37signals)]]
+   - [[http://www.jetmails.com/resources/][JetMails - best practices]]
+  - [ ] Sends emails to remote SMTP.
+  - [ ] Runs an algorithm for email delivery assurance (before sending it to Bounce Store).
+  - [ ] Design plugin system to connect with various MTA services (amazon, etc).
+
+** TODO Manager / HiqManager [0/3]
+  - [ ] Retrieves the whole system status and generates statistics.
+  - [ ] Configures every system node and sends them commands to execute (start, etc).
+  - [ ] Manages the system load and performs hot patching.
+
+** TODO Server / HiqServer [0/3]
+  - Evaluation on the fly:
+   - [[http://www.trapexit.org/String_Eval][Erlang Community - String Eval - Trapexit]]
+  - [ ] Implements the mail request interface.
+  - [ ] Implements the Hiqmail public API interface.
+  - [ ] Design plugin system for DB access (email attributes fetching with ODBC).
+
+* Hiqmail Interfaces [0%]
+
+** TODO Inter-node protocol [0/1]
+  - [ ] Consider MORE crash and recovery cases
+
+** TODO Public API [3/4]
+  - [X] Manages deletion of emails from the system queue.
+  - [X] Reports the status of a given email in the system and the recipient results (spam, etc).
+  - [X] Manages email filter rules, i.e. add, edit or remove a rule / rule set.
+  - [ ] Sets system configuration parameters and collects system statistics.
+
+** TODO Mail request [2/3]
+  - [ ] Defines the format for each mail sending request and query templates.
+  - [X] Provides simple programming constructs: if, else, foreach and variable assignment.
+  - [X] Implements basic data structures: integer, string and array.
+
+** TODO Bounce response [0/1]
+   - [ ] Receives mail bounces from customized MTA server (possibly postfix).
+
+* Project Features [25%]
+
+** TODO Additional Features [0/2]
+  - [ ] Every system node has a local activity log (warnings, %CPU, used memory, etc).
+  - [ ] The system manager may crash, though the rest of the system should work as normal.
+
+** TODO ErlyDTL [0/1]
+  - [ ] Replace ErlyDTL with ErlTL.
+        ErlyDTL calls list_to_atom() and some user could overflow the atom table (VM crashes).
+
+** DONE Documentation [1/1]
+  - [X] Add proper documentation for each function in source code.
+
+** TODO Optimization [1/7]
+  - [ ] Remove cyclic dependencies between modules.
+  - [X] Record definitions
+        Define them in ".hrl" files only when shared, otherwise in ".erl" files.
+  - [ ] Case optimization.
+        Replace "case" expressions with functions with pattern matching on the head.
+  - [ ] Avoid boolean checks on case expressions.
+        Prefer to match on terms (e.g. "case List of [] -> ..." instead of "case length(List) == 0 of True -> ...")
+  - [ ] Use list comprehensions instead of lists:filter.
+  - [ ] See when "case" expressions can be converted to "orelse" expression.
+  - [ ] Try to profile each module [[http://www.erlang.org/doc/efficiency_guide/profiling.html][more info here]].

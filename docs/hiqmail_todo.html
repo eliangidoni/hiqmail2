@@ -1,0 +1,425 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+lang="en" xml:lang="en">
+<head>
+<title>Hiqmail TODO</title>
+<meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="2013-04-21 14:37:11 ART"/>
+<meta name="author" content="G. Elian Gidoni"/>
+<meta name="description" content=""/>
+<meta name="keywords" content=""/>
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  html { font-family: Times, serif; font-size: 12pt; }
+  .title  { text-align: center; }
+  .todo   { color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #add8e6; font-weight:normal }
+  .target { }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  p.verse { margin-left: 3% }
+  pre {
+	border: 1pt solid #AEBDCC;
+	background-color: #F3F5F7;
+	padding: 5pt;
+	font-family: courier, monospace;
+        font-size: 90%;
+        overflow:auto;
+  }
+  table { border-collapse: collapse; }
+  td, th { vertical-align: top; }
+  dt { font-weight: bold; }
+  div.figure { padding: 0.5em; }
+  div.figure p { text-align: center; }
+  .linenr { font-size:smaller }
+  .code-highlighted {background-color:#ffff00;}
+  .org-info-js_info-navigation { border-style:none; }
+  #org-info-js_console-label { font-size:10px; font-weight:bold;
+                               white-space:nowrap; }
+  .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
+                                 font-weight:bold; }
+  /*]]>*/-->
+</style>
+<style type="text/css">
+<!--/*--><![CDATA[/*><!--*/
+.title  { text-align: center; }
+body{text-align:center;}
+div#content{margin:0 auto; text-align:left; width:800px;}
+html{font-family: Georgia, times; font-size:10pt;}
+ul {list-style-type: none;}
+h3 {color:#555555;}
+ul li {padding-bottom: 1%;}
+a {color:blue;}
+/*]]>*/-->
+</style>
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+
+<h1 class="title">Hiqmail TODO</h1>
+
+
+
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">Hiqmail Subsystems [0%] </a>
+<ul>
+<li><a href="#sec-1.1">Bounce Store / HiqBStore [0/2] </a></li>
+<li><a href="#sec-1.2">Core / HiqCore [4/7] </a></li>
+<li><a href="#sec-1.3">Manager / HiqManager [0/3] </a></li>
+<li><a href="#sec-1.4">Server / HiqServer [0/3] </a></li>
+</ul>
+</li>
+<li><a href="#sec-2">Hiqmail Interfaces [0%] </a>
+<ul>
+<li><a href="#sec-2.1">Inter-node protocol [0/1] </a></li>
+<li><a href="#sec-2.2">Public API [3/4] </a></li>
+<li><a href="#sec-2.3">Mail request [2/3] </a></li>
+<li><a href="#sec-2.4">Bounce response [0/1] </a></li>
+</ul>
+</li>
+<li><a href="#sec-3">Project Features [25%] </a>
+<ul>
+<li><a href="#sec-3.1">Additional Features [0/2] </a></li>
+<li><a href="#sec-3.2">ErlyDTL [0/1] </a></li>
+<li><a href="#sec-3.3">Documentation [1/1] </a></li>
+<li><a href="#sec-3.4">Optimization [1/7] </a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">Hiqmail Subsystems [0%] </h2>
+<div class="outline-text-2" id="text-1">
+
+
+
+</div>
+
+<div id="outline-container-1.1" class="outline-3">
+<h3 id="sec-1.1"><span class="todo TODO"> TODO</span> Bounce Store / HiqBStore [0/2] </h3>
+<div class="outline-text-3" id="text-1.1">
+
+<ul>
+<li>
+Should use Mnesia for data replication and loss prevention.
+<ul>
+<li>
+<a href="http://igorrs.blogspot.com.ar/2010/05/mnesia-one-year-later-part-3.html">Considerations for mnesia performance</a>
+</li>
+</ul>
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Receives (through bounce interface) and classifies email bounces.
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Design plugin system to parse/classify bounces.
+
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-1.2" class="outline-3">
+<h3 id="sec-1.2"><span class="todo TODO"> TODO</span> Core / HiqCore [4/7] </h3>
+<div class="outline-text-3" id="text-1.2">
+
+<ul>
+<li>
+<b>[X]</b> Saves the generated email script output in intermediate buffer, i.e. memory, file, etc.
+</li>
+<li>
+<b>[X]</b> Loads a set of filter rules from rule queries.
+</li>
+<li>
+<b>[X]</b> Retrieves and evaluates emails for each configured filter.
+</li>
+<li>
+<b>[X]</b> Notifies the Sender which emails are ready to be sent.
+</li>
+<li>
+Mail Sending Resources:
+<ul>
+<li>
+<a href="https://github.com/Vagabond/gen_smtp">SMTP library to connect to clients</a>
+</li>
+<li>
+<a href="http://mailgun.org/">Mailgun: Programmable Email Servers and Mailbox API</a>
+</li>
+<li>
+<a href="http://37signals.com/svn/posts/3096-behind-the-scenes-giving-away-the-secrets-of-email-delivery">Giving away the secrets of 99.3% email delivery - (37signals)</a>
+</li>
+<li>
+<a href="http://www.jetmails.com/resources/">JetMails - best practices</a>
+</li>
+</ul>
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Sends emails to remote SMTP.
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Runs an algorithm for email delivery assurance (before sending it to Bounce Store).
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Design plugin system to connect with various MTA services (amazon, etc).
+
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-1.3" class="outline-3">
+<h3 id="sec-1.3"><span class="todo TODO"> TODO</span> Manager / HiqManager [0/3] </h3>
+<div class="outline-text-3" id="text-1.3">
+
+<ul>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Retrieves the whole system status and generates statistics.
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Configures every system node and sends them commands to execute (start, etc).
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Manages the system load and performs hot patching.
+
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-1.4" class="outline-3">
+<h3 id="sec-1.4"><span class="todo TODO"> TODO</span> Server / HiqServer [0/3] </h3>
+<div class="outline-text-3" id="text-1.4">
+
+<ul>
+<li>
+Evaluation on the fly:
+<ul>
+<li>
+<a href="http://www.trapexit.org/String_Eval">Erlang Community - String Eval - Trapexit</a>
+</li>
+</ul>
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Implements the mail request interface.
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Implements the Hiqmail public API interface.
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Design plugin system for DB access (email attributes fetching with ODBC).
+
+</li>
+</ul>
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2">Hiqmail Interfaces [0%] </h2>
+<div class="outline-text-2" id="text-2">
+
+
+
+</div>
+
+<div id="outline-container-2.1" class="outline-3">
+<h3 id="sec-2.1"><span class="todo TODO"> TODO</span> Inter-node protocol [0/1] </h3>
+<div class="outline-text-3" id="text-2.1">
+
+<ul>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Consider MORE crash and recovery cases
+
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-2.2" class="outline-3">
+<h3 id="sec-2.2"><span class="todo TODO"> TODO</span> Public API [3/4] </h3>
+<div class="outline-text-3" id="text-2.2">
+
+<ul>
+<li>
+<b>[X]</b> Manages deletion of emails from the system queue.
+</li>
+<li>
+<b>[X]</b> Reports the status of a given email in the system and the recipient results (spam, etc).
+</li>
+<li>
+<b>[X]</b> Manages email filter rules, i.e. add, edit or remove a rule / rule set.
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Sets system configuration parameters and collects system statistics.
+
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-2.3" class="outline-3">
+<h3 id="sec-2.3"><span class="todo TODO"> TODO</span> Mail request [2/3] </h3>
+<div class="outline-text-3" id="text-2.3">
+
+<ul>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Defines the format for each mail sending request and query templates.
+</li>
+<li>
+<b>[X]</b> Provides simple programming constructs: if, else, foreach and variable assignment.
+</li>
+<li>
+<b>[X]</b> Implements basic data structures: integer, string and array.
+
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-2.4" class="outline-3">
+<h3 id="sec-2.4"><span class="todo TODO"> TODO</span> Bounce response [0/1] </h3>
+<div class="outline-text-3" id="text-2.4">
+
+<ul>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Receives mail bounces from customized MTA server (possibly postfix).
+
+</li>
+</ul>
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-3" class="outline-2">
+<h2 id="sec-3">Project Features [25%] </h2>
+<div class="outline-text-2" id="text-3">
+
+
+
+</div>
+
+<div id="outline-container-3.1" class="outline-3">
+<h3 id="sec-3.1"><span class="todo TODO"> TODO</span> Additional Features [0/2] </h3>
+<div class="outline-text-3" id="text-3.1">
+
+<ul>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Every system node has a local activity log (warnings, %CPU, used memory, etc).
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> The system manager may crash, though the rest of the system should work as normal.
+
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-3.2" class="outline-3">
+<h3 id="sec-3.2"><span class="todo TODO"> TODO</span> ErlyDTL [0/1] </h3>
+<div class="outline-text-3" id="text-3.2">
+
+<ul>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Replace ErlyDTL with ErlTL.
+ErlyDTL calls list<sub>to</sub><sub>atom</sub>() and some user could overflow the atom table (VM crashes).
+
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-3.3" class="outline-3">
+<h3 id="sec-3.3"><span class="done DONE"> DONE</span> Documentation [1/1] </h3>
+<div class="outline-text-3" id="text-3.3">
+
+<ul>
+<li>
+<b>[X]</b> Add proper documentation for each function in source code.
+
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-3.4" class="outline-3">
+<h3 id="sec-3.4"><span class="todo TODO"> TODO</span> Optimization [1/7] </h3>
+<div class="outline-text-3" id="text-3.4">
+
+<ul>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Remove cyclic dependencies between modules.
+</li>
+<li>
+<b>[X]</b> Record definitions
+Define them in ".hrl" files only when shared, otherwise in ".erl" files.
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Case optimization.
+Replace "case" expressions with functions with pattern matching on the head.
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Avoid boolean checks on case expressions.
+Prefer to match on terms (e.g. "case List of [] -&gt; &hellip;" instead of "case length(List) == 0 of True -&gt; &hellip;")
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Use list comprehensions instead of lists:filter.
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> See when "case" expressions can be converted to "orelse" expression.
+</li>
+<li>
+<b>[<span style="visibility:hidden;">X</span>]</b> Try to profile each module <a href="http://www.erlang.org/doc/efficiency_guide/profiling.html">more info here</a>.
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="postamble">
+<p class="date"> Date: 2013-04-21 14:37:11 ART</p>
+<p>&copy; 2012-2013 G. Elian Gidoni</p>
+</div>
+</div>
+</body>
+</html>

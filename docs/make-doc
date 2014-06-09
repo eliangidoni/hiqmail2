@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ $# -eq 1 ]; then
+    # compile script
+    erlc makedoc.erl;
+    # run twice to resolve cross-references
+    erl -run makedoc start $1 -run init stop -noshell &> /dev/null; # ignore errors 
+    erl -run makedoc start $1 -run init stop -noshell;
+    # remove script
+    rm makedoc.beam;
+else
+    echo "Usage:"
+    echo "      make-doc <apps_dir>";
+    echo "Example:";
+    echo "      make-doc ../apps";
+fi

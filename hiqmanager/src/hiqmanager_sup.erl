@@ -1,0 +1,2 @@
+-module(hiqmanager_sup).
+-behavior(supervisor).

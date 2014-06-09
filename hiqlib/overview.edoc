@@ -1,0 +1,8 @@
+@copyright 2012 G. Elian Gidoni
+@title Hiqmail Library (hiqlib)
+@doc 
+This application contains several modules used by other Hiqmail applications.
+
+Suggested reading: chapter 9 "Design Principles" from
+<a href="{@root}/docs/otp_erlang_doc.pdf">Erlang System Documentation</a>.
+@end
