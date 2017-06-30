@@ -4,7 +4,7 @@
 
 docs/ -- project documentation
 	make-doc
-		Make project documentation, run without arguments to see the help.
+		Make project documentation, run without arguments to see help.
 	hiqXXXXX/
 		Application documentation (generated with 'make-doc').
         index.html
